@@ -25,7 +25,7 @@ from datasets import dataset_factory
 from deployment import model_deploy
 from nets import nets_factory
 from preprocessing import preprocessing_factory
-from nets import trinarize
+import trinarize
 
 slim = tf.contrib.slim
 
