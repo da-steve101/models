@@ -47,7 +47,7 @@ def replace_get_variable():
         v = old_getv(name, shape, **kwargs)
         # only trinarize the conv weights not biases
         if "weights" in v.name:
-            tf.logging.info( "trinarizing: "  v.name )
+            tf.logging.info( "trinarizing: " + v.name )
             return trinarize(v)
         return v
 
