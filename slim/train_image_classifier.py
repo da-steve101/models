@@ -25,6 +25,7 @@ from datasets import dataset_factory
 from deployment import model_deploy
 from nets import nets_factory
 from preprocessing import preprocessing_factory
+import trinarize
 
 slim = tf.contrib.slim
 
@@ -47,6 +48,9 @@ tf.app.flags.DEFINE_integer(
     'num_ps_tasks', 0,
     'The number of parameter servers. If the value is 0, then the parameters '
     'are handled locally by the worker.')
+
+tf.app.flags.DEFINE_boolean('trinarize', False,
+                            'Trinarize the weights')
 
 tf.app.flags.DEFINE_integer(
     'num_readers', 4,
@@ -417,11 +421,15 @@ def main(_):
     ####################
     # Select the network #
     ####################
+    if FLAGS.trinarize:
+      undo = trinarize.replace_get_variable()
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
         weight_decay=FLAGS.weight_decay,
         is_training=True)
+    if FLAGS.trinarize:
+      undo()
 
     #####################################
     # Select the preprocessing function #
