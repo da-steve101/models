@@ -421,15 +421,11 @@ def main(_):
     ####################
     # Select the network #
     ####################
-    if FLAGS.trinarize:
-      undo = trinarize.replace_get_variable()
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
         weight_decay=FLAGS.weight_decay,
         is_training=True)
-    if FLAGS.trinarize:
-      undo()
 
     #####################################
     # Select the preprocessing function #
@@ -471,7 +467,11 @@ def main(_):
     def clone_fn(batch_queue):
       """Allows data parallelism by creating multiple clones of network_fn."""
       images, labels = batch_queue.dequeue()
+      if FLAGS.trinarize:
+        undo = trinarize.replace_get_variable()
       logits, end_points = network_fn(images)
+      if FLAGS.trinarize:
+        undo()
 
       #############################
       # Specify the loss function #

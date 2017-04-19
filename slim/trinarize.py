@@ -34,8 +34,8 @@ def trinarize( x ):
         clip_val = tf.clip_by_value( x, -1, 1 )
         x_shape = x.get_shape()
         E = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
-        t_x = tf.where( tf.less_equal( clip_val, -eta ), tf.multiply( tf.constant( -1.0, shape = x_shape ), E ), clip_val )
-        t_x = tf.where( tf.greater_equal( clip_val, eta ), tf.multiply( tf.constant( 1.0, shape = x_shape ), E ), t_x )
+        t_x = tf.where( tf.less_equal( clip_val, -eta ), -E, clip_val )
+        t_x = tf.where( tf.greater_equal( clip_val, eta ), E, t_x )
         return tf.where( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
                          tf.constant( 0.0, shape = x_shape ), t_x )
 
