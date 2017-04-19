@@ -82,6 +82,9 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_float(
     'weight_decay', 0.00004, 'The weight decay on the model weights.')
 
+tf.app.flags.DEFINE_float(
+    'sparsity_regularization', 0, 'The weighting of sparsity regularization')
+
 tf.app.flags.DEFINE_string(
     'optimizer', 'rmsprop',
     'The name of the optimizer, one of "adadelta", "adagrad", "adam",'
@@ -482,6 +485,11 @@ def main(_):
             label_smoothing=FLAGS.label_smoothing, weight=0.4, scope='aux_loss')
       slim.losses.softmax_cross_entropy(
           logits, labels, label_smoothing=FLAGS.label_smoothing, weight=1.0)
+      if FLAGS.sparsity_regularization:
+        assert FLAGS.trinarize, "Must be trinarized to add sparsity regularization"
+        tri_out = tf.get_collection( "trinarized_out" )
+        sparsity_loss = tf.reduce_sum( [ tf.reduce_mean(tf.square( x )) for x in tri_out ] )
+        slim.compute_weighted_loss( sparsity_loss, weights = FLAGS.sparsity_regularization )
       return end_points
 
     # Gather initial summaries.
