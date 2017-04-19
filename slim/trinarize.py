@@ -31,7 +31,7 @@ def mul_func( a, b ):
         return tf.mul( a, b )
     return tf.multiply( a, b )
 
-def trinarize( x ):
+def trinarize( x, use_sparsity = False ):
     eta = 0.9
     with tf.get_default_graph().gradient_override_map({
             "clip_by_value" : "Identity",
@@ -46,16 +46,18 @@ def trinarize( x ):
             "GreaterEqual": "Identity"}):
         clip_val = tf.clip_by_value( x, -1, 1 )
         x_shape = x.get_shape()
-        E = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
+        if use_sparsity:
+            E = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
+        else:
+            E = tf.constant( 1.0 )
         one = tf.constant( 1.0, shape = x_shape )
         t_x = where_func( tf.less_equal( clip_val, -eta ), mul_func( one, -E ), clip_val )
         t_x = where_func( tf.greater_equal( clip_val, eta ), mul_func( one, E ), t_x )
         tri_out = where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
                               tf.constant( 0.0, shape = x_shape ), t_x )
-        tf.add_to_collection( "trinarized_out", tri_out )
         return tri_out
 
-def replace_get_variable():
+def replace_get_variable( use_sparsity = False, use_multiplicitive = False ):
     old_getv = tf.get_variable
     old_vars_getv = variable_scope.get_variable
 
@@ -64,7 +66,13 @@ def replace_get_variable():
         # only trinarize the conv weights not biases
         if "weights" in v.name:
             tf.logging.info( "trinarizing: " + v.name )
-            return trinarize(v)
+            tri_out = trinarize(v, use_sparsity = use_sparsity )
+            if use_multiplicative:
+                # allow gradient on mul through
+                m = old_getv( name + "_mul", [1], **kwargs )
+                tri_out = mul_func( tri_out, m )
+            tf.add_to_collection( "trinarized_out", tri_out )
+            return tri_out
         return v
 
     def undo():

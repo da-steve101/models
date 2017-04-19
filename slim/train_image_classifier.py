@@ -49,9 +49,6 @@ tf.app.flags.DEFINE_integer(
     'The number of parameter servers. If the value is 0, then the parameters '
     'are handled locally by the worker.')
 
-tf.app.flags.DEFINE_boolean('trinarize', False,
-                            'Trinarize the weights')
-
 tf.app.flags.DEFINE_integer(
     'num_readers', 4,
     'The number of parallel readers that read data from the dataset.')
@@ -74,6 +71,18 @@ tf.app.flags.DEFINE_integer(
 
 tf.app.flags.DEFINE_integer(
     'task', 0, 'Task id of the replica running the training.')
+
+#######################
+# CNN Structure Flags #
+#######################
+tf.app.flags.DEFINE_boolean('trinarize', False,
+                            'Trinarize the weights')
+
+tf.app.flags.DEFINE_boolean('use_sparsity', False,
+                            'use sparisty controlled weights')
+
+tf.app.flags.DEFINE_boolean('use_multiplicative', False,
+                            'Use a multiplicative constant after the filter')
 
 ######################
 # Optimization Flags #
@@ -471,7 +480,7 @@ def main(_):
       """Allows data parallelism by creating multiple clones of network_fn."""
       images, labels = batch_queue.dequeue()
       if FLAGS.trinarize:
-        undo = trinarize.replace_get_variable()
+        undo = trinarize.replace_get_variable( FLAGS.use_sparsity, FLAGS.use_multiplicative )
       logits, end_points = network_fn(images)
       if FLAGS.trinarize:
         undo()
@@ -488,7 +497,7 @@ def main(_):
       if FLAGS.sparsity_regularization:
         assert FLAGS.trinarize, "Must be trinarized to add sparsity regularization"
         tri_out = tf.get_collection( "trinarized_out" )
-        sparsity_loss = tf.reduce_sum( [ tf.reduce_mean(tf.square( x )) for x in tri_out ] )
+        sparsity_loss = tf.reduce_mean( [ tf.reduce_mean(tf.square( x )) for x in tri_out ] )
         slim.compute_weighted_loss( sparsity_loss, weights = FLAGS.sparsity_regularization )
       return end_points
 
