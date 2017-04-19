@@ -21,23 +21,29 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.python.ops import variable_scope
 
+def where_func( cond, t, e ):
+    if tf.__version__ == '0.11.0rc0':
+        return tf.select( cond, t, e )
+    return tf.where( cond, t, e )
+
 def trinarize( x ):
     eta = 0.9
     with tf.get_default_graph().gradient_override_map({
             "clip_by_value" : "Identity",
             "where": "Identity",
+            "select": "Identity",
             "less" : "Identity",
             "greater": "Identity",
             "less_equal" : "Identity",
-            "greater_equal": "Identity",
-            "multiply":  "Identity"}):
+            "logical_and" : "Identity",
+            "greater_equal": "Identity"}):
         clip_val = tf.clip_by_value( x, -1, 1 )
         x_shape = x.get_shape()
         E = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
-        t_x = tf.where( tf.less_equal( clip_val, -eta ), -E, clip_val )
-        t_x = tf.where( tf.greater_equal( clip_val, eta ), E, t_x )
-        return tf.where( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
-                         tf.constant( 0.0, shape = x_shape ), t_x )
+        t_x = where_func( tf.less_equal( clip_val, -eta ), -E, clip_val )
+        t_x = where_func( tf.greater_equal( clip_val, eta ), E, t_x )
+        return where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
+                           tf.constant( 0.0, shape = x_shape ), t_x )
 
 def replace_get_variable():
     old_getv = tf.get_variable
