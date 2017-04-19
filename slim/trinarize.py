@@ -35,15 +35,15 @@ def trinarize( x ):
     eta = 0.9
     with tf.get_default_graph().gradient_override_map({
             "clip_by_value" : "Identity",
-            "where": "Identity",
-            "select": "Identity",
-            "less" : "Identity",
-            "greater": "Identity",
-            "less_equal" : "Identity",
-            "logical_and" : "Identity",
+            "Where": "Identity",
+            "Select": "Identity",
+            "Less" : "Identity",
+            "Greater": "Identity",
+            "LessEqual" : "Identity",
+            "LogicalAnd" : "Identity",
             "mul" : "Identity",
             "multiply" : "Identity",
-            "greater_equal": "Identity"}):
+            "GreaterEqual": "Identity"}):
         clip_val = tf.clip_by_value( x, -1, 1 )
         x_shape = x.get_shape()
         E = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
