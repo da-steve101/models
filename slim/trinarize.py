@@ -26,6 +26,11 @@ def where_func( cond, t, e ):
         return tf.select( cond, t, e )
     return tf.where( cond, t, e )
 
+def mul_func( a, b ):
+    if tf.__version__ == '0.11.0rc0':
+        return tf.mul( a, b )
+    return tf.multiply( a, b )
+
 def trinarize( x ):
     eta = 0.9
     with tf.get_default_graph().gradient_override_map({
@@ -36,12 +41,15 @@ def trinarize( x ):
             "greater": "Identity",
             "less_equal" : "Identity",
             "logical_and" : "Identity",
+            "mul" : "Identity",
+            "multiply" : "Identity",
             "greater_equal": "Identity"}):
         clip_val = tf.clip_by_value( x, -1, 1 )
         x_shape = x.get_shape()
         E = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
-        t_x = where_func( tf.less_equal( clip_val, -eta ), -E, clip_val )
-        t_x = where_func( tf.greater_equal( clip_val, eta ), E, t_x )
+        one = tf.constant( 1.0, shape = x_shape )
+        t_x = where_func( tf.less_equal( clip_val, -eta ), mul_func( one, -E ), clip_val )
+        t_x = where_func( tf.greater_equal( clip_val, eta ), mul_func( one, E ), t_x )
         return where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
                            tf.constant( 0.0, shape = x_shape ), t_x )
 
