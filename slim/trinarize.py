@@ -50,8 +50,10 @@ def trinarize( x ):
         one = tf.constant( 1.0, shape = x_shape )
         t_x = where_func( tf.less_equal( clip_val, -eta ), mul_func( one, -E ), clip_val )
         t_x = where_func( tf.greater_equal( clip_val, eta ), mul_func( one, E ), t_x )
-        return where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
-                           tf.constant( 0.0, shape = x_shape ), t_x )
+        tri_out = where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
+                              tf.constant( 0.0, shape = x_shape ), t_x )
+        tf.add_to_collection( "trinarized_out", tri_out )
+        return tri_out
 
 def replace_get_variable():
     old_getv = tf.get_variable
