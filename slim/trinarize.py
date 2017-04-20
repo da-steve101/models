@@ -56,7 +56,7 @@ def trinarize( x, use_sparsity = False ):
         return where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
                               tf.constant( 0.0, shape = x_shape ), t_x )
 
-def replace_get_variable( use_sparsity = False, use_multiplicitive = False ):
+def replace_get_variable( use_sparsity = False, use_multiplicative = False ):
     old_getv = tf.get_variable
     old_vars_getv = variable_scope.get_variable
 
