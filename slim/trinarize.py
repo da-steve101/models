@@ -33,28 +33,19 @@ def mul_func( a, b ):
 
 def trinarize( x, use_sparsity = False ):
     eta = 0.9
-    with tf.get_default_graph().gradient_override_map({
-            "clip_by_value" : "Identity",
-            "Where": "Identity",
-            "Select": "Identity",
-            "Less" : "Identity",
-            "Greater": "Identity",
-            "LessEqual" : "Identity",
-            "LogicalAnd" : "Identity",
-            "mul" : "Identity",
-            "multiply" : "Identity",
-            "GreaterEqual": "Identity"}):
-        clip_val = tf.clip_by_value( x, -1, 1 )
-        x_shape = x.get_shape()
-        if use_sparsity:
-            E = tf.stop_gradient(tf.reduce_mean(tf.abs(x)))
-        else:
-            E = tf.constant( 1.0 )
-        one = tf.constant( 1.0, shape = x_shape )
-        t_x = where_func( tf.less_equal( clip_val, -eta ), mul_func( one, -E ), clip_val )
-        t_x = where_func( tf.greater_equal( clip_val, eta ), mul_func( one, E ), t_x )
-        return where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
-                              tf.constant( 0.0, shape = x_shape ), t_x )
+    clip_val = tf.clip_by_value( x, -1, 1 )
+    x_shape = x.get_shape()
+    if use_sparsity:
+        E = tf.reduce_mean(tf.abs(x))
+    else:
+        E = tf.constant( 1.0 )
+    one = tf.constant( 1.0, shape = x_shape )
+    t_x = where_func( tf.less_equal( clip_val, -eta ), mul_func( one, -E ), clip_val )
+    t_x = where_func( tf.greater_equal( clip_val, eta ), mul_func( one, E ), t_x )
+    tri_out = where_func( tf.logical_and( tf.greater( clip_val, -eta ), tf.less( clip_val, eta ) ),
+                          tf.constant( 0.0, shape = x_shape ), t_x )
+    # use the stop gradient trick to have identity backprop to x
+    return x + tf.stop_gradient( tri_out - x )
 
 def replace_get_variable( use_sparsity = False, use_multiplicative = False ):
     old_getv = tf.get_variable
