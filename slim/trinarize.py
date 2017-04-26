@@ -31,8 +31,7 @@ def mul_func( a, b ):
         return tf.mul( a, b )
     return tf.multiply( a, b )
 
-def trinarize( x, use_sparsity = False ):
-    eta = 0.9
+def trinarize( x, use_sparsity = False, eta = 0.9 ):
     clip_val = tf.clip_by_value( x, -1, 1 )
     x_shape = x.get_shape()
     if use_sparsity:
@@ -47,7 +46,7 @@ def trinarize( x, use_sparsity = False ):
     # use the stop gradient trick to have identity backprop to x
     return x + tf.stop_gradient( tri_out - x )
 
-def replace_get_variable( use_sparsity = False, use_multiplicative = False ):
+def replace_get_variable( use_sparsity = False, use_multiplicative = False, tri_eta = 0.9 ):
     old_getv = tf.get_variable
     old_vars_getv = variable_scope.get_variable
 
@@ -56,7 +55,7 @@ def replace_get_variable( use_sparsity = False, use_multiplicative = False ):
         # only trinarize the conv weights not biases
         if "weights" in v.name:
             tf.logging.info( "trinarizing: " + v.name )
-            tri_out = trinarize(v, use_sparsity = use_sparsity )
+            tri_out = trinarize(v, use_sparsity = use_sparsity, eta = tri_eta )
             if use_multiplicative:
                 # allow gradient on mul through
                 m = old_getv( name + "_mul", [1], **kwargs )

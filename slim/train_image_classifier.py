@@ -75,7 +75,7 @@ tf.app.flags.DEFINE_integer(
 #######################
 # CNN Structure Flags #
 #######################
-tf.app.flags.DEFINE_boolean('trinarize', False,
+tf.app.flags.DEFINE_float('trinarize', 0.0,
                             'Trinarize the weights')
 
 tf.app.flags.DEFINE_boolean('use_sparsity', False,
@@ -479,10 +479,10 @@ def main(_):
     def clone_fn(batch_queue):
       """Allows data parallelism by creating multiple clones of network_fn."""
       images, labels = batch_queue.dequeue()
-      if FLAGS.trinarize:
-        undo = trinarize.replace_get_variable( FLAGS.use_sparsity, FLAGS.use_multiplicative )
+      if FLAGS.trinarize != 0.0:
+        undo = trinarize.replace_get_variable( FLAGS.use_sparsity, FLAGS.use_multiplicative, FLAGS.trinarize )
       logits, end_points = network_fn(images)
-      if FLAGS.trinarize:
+      if FLAGS.trinarize != 0.0:
         undo()
 
       #############################
@@ -495,7 +495,7 @@ def main(_):
       slim.losses.softmax_cross_entropy(
           logits, labels, label_smoothing=FLAGS.label_smoothing, weight=1.0)
       if FLAGS.sparsity_regularization:
-        assert FLAGS.trinarize, "Must be trinarized to add sparsity regularization"
+        assert FLAGS.trinarize != 0.0, "Must be trinarized to add sparsity regularization"
         tri_out = tf.get_collection( "trinarized_out" )
         sparsity_loss = tf.reduce_mean( [ tf.reduce_mean(tf.square( x )) for x in tri_out ] )
         slim.compute_weighted_loss( sparsity_loss, weights = FLAGS.sparsity_regularization )
