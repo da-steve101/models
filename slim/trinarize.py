@@ -68,7 +68,7 @@ def replace_get_variable( use_sparsity = False, use_multiplicative = False, tri_
     def get_variable_override(name, shape=None, **kwargs):
         v = old_getv(name, shape, **kwargs)
         # only trinarize the conv weights not biases
-        if "weights" in v.name:
+        if "weights" in v.name and "Logits" not in v.name:
             tf.logging.info( "trinarizing: " + v.name )
             if use_ttq != 0.0:
                 # declare the pos and neg vars
