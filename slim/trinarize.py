@@ -74,8 +74,6 @@ def replace_get_variable( use_sparsity = False, use_multiplicative = False, tri_
                 # declare the pos and neg vars
                 w_p = old_getv('Wp', collections=[tf.GraphKeys.VARIABLES, 'positives'], initializer=1.0)
                 w_n = old_getv('Wn', collections=[tf.GraphKeys.VARIABLES, 'negatives'], initializer=1.0)
-                tf.scalar_summary(w_p.name, w_p)
-                tf.scalar_summary(w_n.name, w_n)
                 tri_out = ttq_method( v, use_ttq, w_p, w_n )
             else:
                 tri_out = trinarize(v, use_sparsity = use_sparsity, eta = tri_eta )
