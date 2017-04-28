@@ -78,6 +78,9 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_float('trinarize', 0.0,
                             'Trinarize the weights')
 
+tf.app.flags.DEFINE_float('use_ttq', 0.0,
+                            'Trinarize the weights using the ttq method')
+
 tf.app.flags.DEFINE_boolean('use_sparsity', False,
                             'use sparisty controlled weights')
 
@@ -479,10 +482,10 @@ def main(_):
     def clone_fn(batch_queue):
       """Allows data parallelism by creating multiple clones of network_fn."""
       images, labels = batch_queue.dequeue()
-      if FLAGS.trinarize != 0.0:
-        undo = trinarize.replace_get_variable( FLAGS.use_sparsity, FLAGS.use_multiplicative, FLAGS.trinarize )
+      if FLAGS.trinarize != 0.0 || FLAGS.use_ttq != 0:
+        undo = trinarize.replace_get_variable( FLAGS.use_sparsity, FLAGS.use_multiplicative, FLAGS.trinarize, FLAGS.use_ttq )
       logits, end_points = network_fn(images)
-      if FLAGS.trinarize != 0.0:
+      if FLAGS.trinarize != 0.0 || FLAGS.use_ttq != 0:
         undo()
 
       #############################

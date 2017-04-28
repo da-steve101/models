@@ -46,7 +46,22 @@ def trinarize( x, use_sparsity = False, eta = 0.9 ):
     # use the stop gradient trick to have identity backprop to x
     return x + tf.stop_gradient( tri_out - x )
 
-def replace_get_variable( use_sparsity = False, use_multiplicative = False, tri_eta = 0.9 ):
+def ttq_method( x, thre, w_p, w_n ):
+    thre_x = tf.stop_gradient(tf.reduce_max(tf.abs(x)) * thre)
+    x_shape = x.get_shape()
+
+    one = tf.constant( 1.0, shape = x_shape )
+    t_x = where_func( tf.less_equal( x, -thre_x ), mul_func( one, w_n ), x )
+    t_x = where_func( tf.greater_equal( x, thre_x ), mul_func( one, w_p ), t_x )
+    mask_z = where_func( tf.logical_and( tf.greater( x, -thre_x ), tf.less( x, thre_x ) ),
+                      tf.constant( 0.0, shape = x_shape ), t_x )
+
+    with G.gradient_override_map({"Sign": "Identity", "Mul": "Add"}):
+        w =  tf.sign(x) * tf.stop_gradient(mask_z)
+
+    return w * t_x
+
+def replace_get_variable( use_sparsity = False, use_multiplicative = False, tri_eta = 0.9, use_ttq = 0.0 ):
     old_getv = tf.get_variable
     old_vars_getv = variable_scope.get_variable
 
@@ -55,11 +70,19 @@ def replace_get_variable( use_sparsity = False, use_multiplicative = False, tri_
         # only trinarize the conv weights not biases
         if "weights" in v.name:
             tf.logging.info( "trinarizing: " + v.name )
-            tri_out = trinarize(v, use_sparsity = use_sparsity, eta = tri_eta )
-            if use_multiplicative:
-                # allow gradient on mul through
-                m = old_getv( name + "_mul", [1], **kwargs )
-                tri_out = mul_func( tri_out, m )
+            if use_ttq != 0.0:
+                # declare the pos and neg vars
+                w_p = old_getv('Wp', collections=[tf.GraphKeys.VARIABLES, 'positives'], initializer=1.0)
+                w_n = old_getv('Wn', collections=[tf.GraphKeys.VARIABLES, 'negatives'], initializer=1.0)
+                tf.scalar_summary(w_p.name, w_p)
+                tf.scalar_summary(w_n.name, w_n)
+                tri_out = ttq_method( v, use_ttq, w_p, w_n )
+            else:
+                tri_out = trinarize(v, use_sparsity = use_sparsity, eta = tri_eta )
+                if use_multiplicative:
+                    # allow gradient on mul through
+                    m = old_getv( name + "_mul", [1], **kwargs, initializer=1.0 )
+                    tri_out = mul_func( tri_out, m )
             tf.add_to_collection( "trinarized_out", tri_out )
             return tri_out
         return v
