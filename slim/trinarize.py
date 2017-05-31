@@ -54,7 +54,7 @@ def ttq_method( x, thre, w_p, w_n ):
     t_x = where_func( tf.less_equal( x, -thre_x ), mul_func( one, w_n ), x )
     t_x = where_func( tf.greater_equal( x, thre_x ), mul_func( one, w_p ), t_x )
     mask_z = where_func( tf.logical_and( tf.greater( x, -thre_x ), tf.less( x, thre_x ) ),
-                      tf.constant( 0.0, shape = x_shape ), t_x )
+                      tf.constant( 0.0, shape = x_shape ), one )
 
     with tf.get_default_graph().gradient_override_map({"Sign": "Identity", "Mul": "Add"}):
         w =  tf.sign(x) * tf.stop_gradient(mask_z)
